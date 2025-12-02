@@ -241,4 +241,20 @@ typedef struct {
     0x49152e77, 0x1ada, 0x4764, {0xb7, 0xa2, 0x7a, 0xfe, 0xfe, 0xd9, 0x5e, 0x8b } \
   }
 
+
+#ifndef VOID
+  #define VOID void
+#endif
+
+#ifndef STATIC
+  #define STATIC static
+#endif
+
+#define EFI_STATUS UINT64
+#define EFI_SUCCESS 0
+#define EFI_OUT_OF_RESOURCES 0x800000000000000E
+#define EFI_BUFFER_TOO_SMALL 0x8000000000000005
+
+#define EFI_ERROR(a) (((EFI_STATUS)(a)) >= 0x8000000000000000)
+
 #endif // UEFISPEC_H_

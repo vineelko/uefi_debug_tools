@@ -112,6 +112,19 @@ GetRegisterValue (
   __in PCSTR  Name
   );
 
+HRESULT
+FindModuleBackwards (
+  ULONG64  Address
+  );
+
+EFI_STATUS
+EfiCompress (
+  IN      UINT8   *SrcBuffer,
+  IN      UINT32  SrcSize,
+  IN      UINT8   *DstBuffer,
+  IN OUT  UINT32  *DstSize
+  );
+
 #define VerbOut(...) \
 g_ExtControl->ControlledOutput(DEBUG_OUTCTL_ALL_CLIENTS,\
                                 DEBUG_OUTPUT_VERBOSE,\

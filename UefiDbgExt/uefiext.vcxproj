@@ -278,6 +278,7 @@
     <ClCompile Include="swdebug.cpp" />
     <ClCompile Include="handles.cpp" />
     <ClCompile Include="efiutil.cpp" />
+    <ClCompile Include="eficompress.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="readme.md" />
