@@ -33,6 +33,11 @@ parser.add_argument("-d", "--debug", action="store_true",
                     help="Enables debug printing.")
 args = parser.parse_args()
 
+# Constants
+BUFFER_SIZE = 4096*2
+SERIAL_CHUNK_SIZE = 32
+SERIAL_CHUNK_DELAY = 0.00025
+
 # Global queues used between threads.
 out_queue = queue.Queue()
 in_queue = queue.Queue()
@@ -64,7 +69,7 @@ def socket_thread():
                 while not out_queue.empty():
                     conn.sendall(out_queue.get())
 
-                data = conn.recv(4096)
+                data = conn.recv(BUFFER_SIZE)
             except socket.timeout:
                 data = None
             except Exception as e:
@@ -111,7 +116,7 @@ def listen_named_pipe():
             print("Pipe connected.")
             while True:
                 if win32file.GetFileSize(handle) > 0:
-                    hr, data = win32file.ReadFile(handle, 4096)
+                    hr, data = win32file.ReadFile(handle, BUFFER_SIZE)
                     if (hr != 0):
                         print(f"Error reading: {hr}")
                         continue
@@ -163,7 +168,13 @@ def listen_com_port():
                 text = data.decode('ascii', errors='replace')
                 # prints with red color
                 print("\033[31m" + text + "\033[0m")
-            serial_port.write(data)
+
+            for i in range(0, len(data), SERIAL_CHUNK_SIZE):
+                chunk = data[i:i+SERIAL_CHUNK_SIZE]
+                serial_port.write(chunk)
+                # a short delay to avoid overwhelming the FIFO. This should be solvable with RTS flow control, but
+                # that doesn't seem to work on Patina's 16550 implementation.
+                time.sleep(SERIAL_CHUNK_DELAY)
 
 def main():
     if args.pipe is None and args.comport is None:
