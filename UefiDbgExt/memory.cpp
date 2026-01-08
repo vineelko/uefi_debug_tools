@@ -321,7 +321,7 @@ advlog (
         Result = ERROR_NOT_FOUND;
         goto Exit;
       }
-    } else if (gUefiEnv == RUST) {
+    } else if (gUefiEnv == PATINA) {
       InfoAddress = GetExpression ("patina_adv_logger::logger::DBG_ADV_LOG_BUFFER");
       if (InfoAddress == NULL) {
         dprintf ("Failed to find patina_adv_logger::logger::DBG_ADV_LOG_BUFFER!\n");

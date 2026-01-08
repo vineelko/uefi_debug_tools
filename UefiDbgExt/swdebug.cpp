@@ -86,7 +86,7 @@ modulebreak (
 
   INIT_API ();
 
-  if (RUST == gUefiEnv) {
+  if (PATINA == gUefiEnv) {
     sprintf_s (Command, sizeof (Command), "mod break %s", args);
   } else {
     sprintf_s (Command, sizeof (Command), "b%s", args);
@@ -181,7 +181,7 @@ loadcore (
   BOOLEAN NoGo = FALSE;
   INIT_API ();
 
-  if (RUST != gUefiEnv) {
+  if (PATINA != gUefiEnv) {
     dprintf ("!uefiext.loadcore is only supported in Patina environments.\n");
     goto Exit;
   }

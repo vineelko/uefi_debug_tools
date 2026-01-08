@@ -440,7 +440,7 @@ findall (
 
   INIT_API ();
 
-  if ((gUefiEnv != DXE) && (gUefiEnv != RUST)) {
+  if ((gUefiEnv != DXE) && (gUefiEnv != PATINA)) {
     dprintf ("Only supported for DXE and Rust!\n");
     return ERROR_NOT_SUPPORTED;
   }

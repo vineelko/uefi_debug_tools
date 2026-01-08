@@ -125,10 +125,10 @@ setenv (
     gUefiEnv = DXE;
   } else if (_stricmp (args, "MM") == 0) {
     gUefiEnv = MM;
-  } else if (_stricmp (args, "rust") == 0) {
-    gUefiEnv = RUST;
+  } else if (_stricmp (args, "patina") == 0) {
+    gUefiEnv = PATINA;
   } else {
-    dprintf ("Unknown environment type! Supported types: PEI, DXE, MM, rust\n");
+    dprintf ("Unknown environment type! Supported types: PEI, DXE, MM, patina\n");
   }
 
   EXIT_API ();
@@ -210,9 +210,11 @@ uefiext_init (
 
     // Detect if this is a UEFI software debugger.
     Output = ExecuteCommandWithOutput (Client, ".exdicmd target:0:?");
-    if (strstr (Output, "Rust Debugger") != NULL) {
-      dprintf ("Rust UEFI Debugger detected.\n");
-      gUefiEnv = RUST;
+    if ((strstr (Output, "Rust Debugger") != NULL) ||
+        (strstr (Output, "Patina Debugger") != NULL)) {
+
+      dprintf ("Patina Debugger detected.\n");
+      gUefiEnv = PATINA;
     } else if (strstr (Output, "DXE UEFI Debugger") != NULL) {
       dprintf ("DXE UEFI Debugger detected.\n");
       gUefiEnv = DXE;
@@ -222,7 +224,7 @@ uefiext_init (
     }
 
     dprintf ("Scanning for images.\n");
-    if (gUefiEnv == DXE || gUefiEnv == RUST) {
+    if (gUefiEnv == DXE || gUefiEnv == PATINA) {
       g_ExtControl->Execute (
                       DEBUG_OUTCTL_ALL_CLIENTS,
                       "!uefiext.findall",
@@ -378,7 +380,7 @@ BreakFromRunning (
   // this functionality to Patina environment for safety.
   //
 
-  if (RUST != gUefiEnv) {
+  if (PATINA != gUefiEnv) {
     return;
   }
 

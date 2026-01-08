@@ -117,7 +117,7 @@ FindSystemTable (
       dprintf ("Failed to read memory at %llx to get system table from ptr\n", SystemPtrAddr);
       return 0;
     }
-  } else if (gUefiEnv == RUST) {
+  } else if (gUefiEnv == PATINA) {
     PSTR Response = MonitorCommandWithOutput (g_ExtClient, "system_table_ptr", 0);
     SystemPtrAddr = strtoull (Response, NULL, 16);
 

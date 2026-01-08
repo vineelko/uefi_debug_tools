@@ -34,7 +34,7 @@ typedef enum _UEFI_ENV {
   PEI,
   DXE,
   MM,
-  RUST,
+  PATINA,
   UNKNOWN
 } UEFI_ENV;
 
