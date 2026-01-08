@@ -41,7 +41,7 @@ typedef enum _UEFI_ENV {
 extern UEFI_ENV  gUefiEnv;
 
 //
-// EFI tables structions and functions.
+// EFI tables structures and functions.
 //
 
 typedef enum _EFI_TABLE {
@@ -57,6 +57,17 @@ typedef enum _EFI_TABLE {
 ULONG64
 GetTableAddress (
   EFI_TABLE  Table
+  );
+
+ULONG64
+FindConfigTable (
+  IN  ULONG64     SystemTableAddr,
+  IN  const GUID  *TableGuid
+  );
+
+ULONG64
+FindSystemTable (
+  VOID
   );
 
 UINT64

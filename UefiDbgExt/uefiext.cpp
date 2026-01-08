@@ -297,7 +297,7 @@ ExecuteCommandWithOutput (
   Client->GetOutputCallbacks (&Callbacks);
   Client->SetOutputCallbacks (&mOutputCallback);
   g_ExtControl->Execute (
-                  DEBUG_OUTCTL_ALL_CLIENTS,
+                  DEBUG_OUTCTL_THIS_CLIENT,
                   Command,
                   DEBUG_EXECUTE_DEFAULT
                   );

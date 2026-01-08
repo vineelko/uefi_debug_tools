@@ -160,6 +160,8 @@ typedef struct {
   EFI_CONFIGURATION_TABLE    *ConfigurationTable;
 } EFI_SYSTEM_TABLE;
 
+#define SYSTEM_TABLE_SIGNATURE (('I') | (static_cast<ULONG64>('B') << 8) | (static_cast<ULONG64>('I') << 16) | (static_cast<ULONG64>(' ') << 24) | (static_cast<ULONG64>('S') << 32) | (static_cast<ULONG64>('Y') << 40) | (static_cast<ULONG64>('S') << 48) | (static_cast<ULONG64>('T') << 56))
+
 typedef
 UINT64
 (*EFI_IMAGE_UNLOAD)(
@@ -235,6 +237,9 @@ typedef struct {
   ///
   EFI_DEBUG_IMAGE_INFO    *EfiDebugImageInfoTable;
 } EFI_DEBUG_IMAGE_INFO_TABLE_HEADER;
+
+#define EFI_DEBUG_IMAGE_INFO_UPDATE_IN_PROGRESS  0x01
+#define EFI_DEBUG_IMAGE_INFO_TABLE_MODIFIED      0x02
 
 #define EFI_DEBUG_IMAGE_INFO_TABLE_GUID \
   { \
