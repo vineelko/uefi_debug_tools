@@ -25,8 +25,13 @@ PDEBUG_REGISTERS  g_ExtRegisters;
 
 WINDBG_EXTENSION_APIS  ExtensionApis;
 
-ULONG  TargetMachine;
-BOOL   Connected;
+ULONG              TargetMachine;
+BOOL               Connected;
+UefiEventCallbacks g_EventCallbacks;
+IDebugClient      *g_EventClient = NULL;
+
+extern ULONG64 gSystemTableAddr;
+extern ULONG64 gDebugTableAddr;
 
 // Queries for all debugger interfaces.
 extern "C" HRESULT
@@ -156,6 +161,246 @@ DebugExtensionInitialize (
   return Hr;
 }
 
+//
+// UefiEventCallbacks implementation
+//
+
+STDMETHODIMP
+UefiEventCallbacks::QueryInterface (
+  THIS_
+  _In_ REFIID   InterfaceId,
+  _Out_ PVOID  *Interface
+  )
+{
+  *Interface = NULL;
+
+  if (IsEqualIID (InterfaceId, __uuidof (IUnknown)) ||
+      IsEqualIID (InterfaceId, __uuidof (IDebugEventCallbacks)))
+  {
+    *Interface = (IDebugEventCallbacks *)this;
+    AddRef ();
+    return S_OK;
+  }
+
+  return E_NOINTERFACE;
+}
+
+STDMETHODIMP_(ULONG)
+UefiEventCallbacks::AddRef (
+  THIS
+  )
+{
+  // This class is a global singleton, so no reference counting needed
+  return 1;
+}
+
+STDMETHODIMP_(ULONG)
+UefiEventCallbacks::Release (
+  THIS
+  )
+{
+  // This class is a global singleton, so no reference counting needed
+  return 0;
+}
+
+STDMETHODIMP
+UefiEventCallbacks::GetInterestMask (
+  THIS_
+  _Out_ PULONG  Mask
+  )
+{
+  // We're only interested in engine state changes to detect execution status changes
+  *Mask = DEBUG_EVENT_CHANGE_ENGINE_STATE;
+  return S_OK;
+}
+
+STDMETHODIMP
+UefiEventCallbacks::Breakpoint (
+  THIS_
+  _In_ PDEBUG_BREAKPOINT  Bp
+  )
+{
+  UNREFERENCED_PARAMETER (Bp);
+  return DEBUG_STATUS_NO_CHANGE;
+}
+
+STDMETHODIMP
+UefiEventCallbacks::Exception (
+  THIS_
+  _In_ PEXCEPTION_RECORD64  Exception,
+  _In_ ULONG                FirstChance
+)
+{
+  UNREFERENCED_PARAMETER (Exception);
+  UNREFERENCED_PARAMETER (FirstChance);
+  return DEBUG_STATUS_NO_CHANGE;
+}
+
+STDMETHODIMP
+UefiEventCallbacks::CreateThread (
+  THIS_
+  _In_ ULONG64  Handle,
+  _In_ ULONG64  DataOffset,
+  _In_ ULONG64  StartOffset
+  )
+{
+  UNREFERENCED_PARAMETER (Handle);
+  UNREFERENCED_PARAMETER (DataOffset);
+  UNREFERENCED_PARAMETER (StartOffset);
+  return DEBUG_STATUS_NO_CHANGE;
+}
+
+STDMETHODIMP
+UefiEventCallbacks::ExitThread (
+  THIS_
+  _In_ ULONG  ExitCode
+  )
+{
+  UNREFERENCED_PARAMETER (ExitCode);
+  return DEBUG_STATUS_NO_CHANGE;
+}
+
+STDMETHODIMP
+UefiEventCallbacks::CreateProcess (
+  THIS_
+  _In_ ULONG64  ImageFileHandle,
+  _In_ ULONG64  Handle,
+  _In_ ULONG64  BaseOffset,
+  _In_ ULONG    ModuleSize,
+  _In_opt_ PCSTR ModuleName,
+  _In_opt_ PCSTR ImageName,
+  _In_ ULONG    CheckSum,
+  _In_ ULONG    TimeDateStamp,
+  _In_ ULONG64  InitialThreadHandle,
+  _In_ ULONG64  ThreadDataOffset,
+  _In_ ULONG64  StartOffset
+  )
+{
+  UNREFERENCED_PARAMETER (ImageFileHandle);
+  UNREFERENCED_PARAMETER (Handle);
+  UNREFERENCED_PARAMETER (BaseOffset);
+  UNREFERENCED_PARAMETER (ModuleSize);
+  UNREFERENCED_PARAMETER (ModuleName);
+  UNREFERENCED_PARAMETER (ImageName);
+  UNREFERENCED_PARAMETER (CheckSum);
+  UNREFERENCED_PARAMETER (TimeDateStamp);
+  UNREFERENCED_PARAMETER (InitialThreadHandle);
+  UNREFERENCED_PARAMETER (ThreadDataOffset);
+  UNREFERENCED_PARAMETER (StartOffset);
+  return DEBUG_STATUS_NO_CHANGE;
+}
+
+STDMETHODIMP
+UefiEventCallbacks::ExitProcess (
+  THIS_
+  _In_ ULONG  ExitCode
+  )
+{
+  UNREFERENCED_PARAMETER (ExitCode);
+  return DEBUG_STATUS_NO_CHANGE;
+}
+
+STDMETHODIMP
+UefiEventCallbacks::LoadModule (
+  THIS_
+  _In_ ULONG64   ImageFileHandle,
+  _In_ ULONG64   BaseOffset,
+  _In_ ULONG     ModuleSize,
+  _In_opt_ PCSTR ModuleName,
+  _In_opt_ PCSTR ImageName,
+  _In_ ULONG     CheckSum,
+  _In_ ULONG     TimeDateStamp
+  )
+{
+  UNREFERENCED_PARAMETER (ImageFileHandle);
+  UNREFERENCED_PARAMETER (BaseOffset);
+  UNREFERENCED_PARAMETER (ModuleSize);
+  UNREFERENCED_PARAMETER (ModuleName);
+  UNREFERENCED_PARAMETER (ImageName);
+  UNREFERENCED_PARAMETER (CheckSum);
+  UNREFERENCED_PARAMETER (TimeDateStamp);
+  return DEBUG_STATUS_NO_CHANGE;
+}
+
+STDMETHODIMP
+UefiEventCallbacks::UnloadModule (
+  THIS_
+  _In_opt_ PCSTR ImageBaseName,
+  _In_ ULONG64   BaseOffset
+  )
+{
+  UNREFERENCED_PARAMETER (ImageBaseName);
+  UNREFERENCED_PARAMETER (BaseOffset);
+  return DEBUG_STATUS_NO_CHANGE;
+}
+
+STDMETHODIMP
+UefiEventCallbacks::SystemError (
+  THIS_
+  _In_ ULONG  Error,
+  _In_ ULONG  Level
+  )
+{
+  UNREFERENCED_PARAMETER (Error);
+  UNREFERENCED_PARAMETER (Level);
+  return DEBUG_STATUS_NO_CHANGE;
+}
+
+STDMETHODIMP
+UefiEventCallbacks::SessionStatus (
+  THIS_
+  _In_ ULONG  Status
+  )
+{
+  UNREFERENCED_PARAMETER (Status);
+  return DEBUG_STATUS_NO_CHANGE;
+}
+
+STDMETHODIMP
+UefiEventCallbacks::ChangeDebuggeeState (
+  THIS_
+  _In_ ULONG    Flags,
+  _In_ ULONG64  Argument
+  )
+{
+  UNREFERENCED_PARAMETER (Flags);
+  UNREFERENCED_PARAMETER (Argument);
+  return DEBUG_STATUS_NO_CHANGE;
+}
+
+STDMETHODIMP
+UefiEventCallbacks::ChangeEngineState (
+  THIS_
+  _In_ ULONG    Flags,
+  _In_ ULONG64  Argument
+  )
+{
+  static BOOLEAN LastGo = FALSE;
+
+  if (Flags & DEBUG_CES_EXECUTION_STATUS) {
+    if (Argument == DEBUG_STATUS_GO) {
+      LastGo = TRUE;
+    } else if (Argument == DEBUG_STATUS_BREAK && LastGo) {
+      LastGo = FALSE;
+      BreakFromRunning();
+    }
+  }
+
+  return S_OK;
+}
+
+STDMETHODIMP
+UefiEventCallbacks::ChangeSymbolState (
+  THIS_
+  _In_ ULONG    Flags,
+  _In_ ULONG64  Argument
+  )
+{
+  UNREFERENCED_PARAMETER (Flags);
+  UNREFERENCED_PARAMETER (Argument);
+  return S_OK;
+}
+
 extern "C"
 void
 CALLBACK
@@ -201,13 +446,25 @@ DebugExtensionNotify (
         DebugControl->Release ();
       }
 
+      //
+      // Register event callbacks to get notified on every break
+      // Keep the client reference for unregistration later
+      //
+      if (g_EventClient == NULL) {
+        g_EventClient = DebugClient;
+        g_EventClient->AddRef ();
+        g_EventClient->SetEventCallbacks (&g_EventCallbacks);
+      }
+
       DebugClient->Release ();
     }
   }
 
   if (Notify == DEBUG_NOTIFY_SESSION_INACTIVE) {
-    Connected     = FALSE;
-    TargetMachine = 0;
+    Connected        = FALSE;
+    TargetMachine    = 0;
+    gSystemTableAddr = 0;
+    gDebugTableAddr  = 0;
   }
 
   return;
@@ -220,6 +477,15 @@ DebugExtensionUninitialize (
   void
   )
 {
+  //
+  // Unregister event callbacks before unloading
+  //
+  if (g_EventClient != NULL) {
+    g_EventClient->SetEventCallbacks (NULL);
+    g_EventClient->Release ();
+    g_EventClient = NULL;
+  }
+
   return;
 }
 

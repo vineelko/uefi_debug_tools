@@ -22,6 +22,9 @@ Abstract:
 
 const GUID gDebugImageInfoTableGuid = EFI_DEBUG_IMAGE_INFO_TABLE_GUID;
 
+ULONG64 gSystemTableAddr  = 0;
+ULONG64 gDebugTableAddr   = 0;
+
 VOID
 LoadCompositionExtensions (
   )
@@ -431,8 +434,6 @@ findall (
   PCSTR           args
   )
 {
-  STATIC ULONG64 SystemTableAddr  = 0;
-  STATIC ULONG64 DebugTableAddr   = 0;
   ULONG    BytesRead              = 0;
   BOOLEAN  RefreshMode            = FALSE;
   HRESULT  Result;
@@ -451,11 +452,11 @@ findall (
 
   // Only use the cached table addresses in refresh mode
   if (!RefreshMode) {
-    SystemTableAddr = 0;
-    DebugTableAddr = 0;
+    gSystemTableAddr = 0;
+    gDebugTableAddr = 0;
   }
 
-  if (SystemTableAddr == 0) {
+  if (gSystemTableAddr == 0) {
 
     //
     // Finding the system table may require finding and loading the core first.
@@ -468,12 +469,12 @@ findall (
                     DEBUG_EXECUTE_DEFAULT
                     );
 
-    SystemTableAddr = FindSystemTable ();
+    gSystemTableAddr = FindSystemTable ();
   } else {
-    dprintf ("Using cached system table address %llx\n", SystemTableAddr);
+    dprintf ("Using cached system table address %llx\n", gSystemTableAddr);
   }
 
-  if (SystemTableAddr == 0) {
+  if (gSystemTableAddr == 0) {
     dprintf ("System table not found. May not be initialized yet.\n");
     return ERROR_NOT_FOUND;
   }
@@ -482,17 +483,17 @@ findall (
   // Load all the other modules using the debug table.
   //
 
-  if (DebugTableAddr == 0) {
-    DebugTableAddr = FindConfigTable (SystemTableAddr, &gDebugImageInfoTableGuid);
-    if (DebugTableAddr == 0) {
+  if (gDebugTableAddr == 0) {
+    gDebugTableAddr = FindConfigTable (gSystemTableAddr, &gDebugImageInfoTableGuid);
+    if (gDebugTableAddr == 0) {
       dprintf ("Failed to locate EFI_DEBUG_IMAGE_INFO_TABLE_HEADER in configuration tables\n");
       return ERROR_NOT_FOUND;
     }
   } else {
-    dprintf ("Using cached debug table address %llx\n", DebugTableAddr);
+    dprintf ("Using cached debug table address %llx\n", gDebugTableAddr);
   }
 
-  Result = loadmodules (DebugTableAddr, RefreshMode);
+  Result = loadmodules (gDebugTableAddr, RefreshMode);
 
   EXIT_API ();
   return Result;

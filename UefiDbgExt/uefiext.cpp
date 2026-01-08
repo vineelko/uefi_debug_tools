@@ -363,3 +363,36 @@ MonitorCommandWithOutput (
 
   return Output;
 }
+
+VOID
+BreakFromRunning (
+  VOID
+  )
+{
+  IDebugClient *DebugClient;
+  PDEBUG_CONTROL DebugControl;
+
+  //
+  // Running findall refresh makes many assumptions about the target state
+  // which may lead to reading bad data if incorrect. Therefore, restrict
+  // this functionality to Patina environment for safety.
+  //
+
+  if (RUST != gUefiEnv) {
+    return;
+  }
+
+  if (DebugCreate (__uuidof (IDebugClient), (void **)&DebugClient) == S_OK) {
+    if (DebugClient->QueryInterface (__uuidof (IDebugControl), (void **)&DebugControl) == S_OK) {
+      DebugControl->Execute (
+                      DEBUG_OUTCTL_LOG_ONLY,
+                      "!uefiext.findall -r",
+                      DEBUG_EXECUTE_DEFAULT
+                      );
+
+      DebugControl->Release ();
+    }
+
+    DebugClient->Release ();
+  }
+}
