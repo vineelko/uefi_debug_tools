@@ -300,6 +300,12 @@ advlog (
   ULONG                             End;
   ADVANCED_LOGGER_MESSAGE_ENTRY_V2  *Entry;
   ADVANCED_LOGGER_INFO              Info = { 0 };
+  ULONG64                           TailBytes = 0;
+  PSTR                              *Tokens;
+  ULONG                             TokenCount;
+  ULONG                             TokenIndex;
+  PCSTR                             HelpString = "Usage: !advlog [-t[bytes]] [address]\n";
+  CONST UINT32                      MessageSignature = 0x324d4c41; // 'ALM2'
 
   // NOTE: This implementation is a crude first past, The following should be done
   // in the future.
@@ -312,8 +318,54 @@ advlog (
 
   INIT_API ();
 
-  // If no valid input address was give, find the symbol.
-  if (GetExpressionEx (args, &InfoAddress, &args) == FALSE) {
+  //
+  // Parse arguments: !advlog [-t[bytes]] [address]
+  //
+
+  InfoAddress = 0;
+  TokenCount  = TokenizeArgs (args, &Tokens);
+  TokenIndex  = 0;
+
+  // Check for tail option. This is immediately (no space) followed by an optional bytes count.
+  if ((TokenIndex < TokenCount) &&
+      (_strnicmp (Tokens[TokenIndex], "-t", 2) == 0))
+  {
+    if (Tokens[TokenIndex][2] != '\0') {
+      if (GetExpressionEx (&Tokens[TokenIndex][2], &TailBytes, NULL) == FALSE) {
+        dprintf (HelpString);
+        Result = ERROR_INVALID_PARAMETER;
+        goto Exit;
+      }
+      // Aligning up simplifies looking for messages entries.
+      TailBytes = ALIGN_UP (TailBytes, 8);
+    } else {
+      TailBytes = 0x1000;
+    }
+
+    dprintf ("Showing last %llu bytes of log.\n", TailBytes);
+    TokenIndex++;
+  }
+
+  // Parse the optional address (last remaining token)
+  if (TokenIndex < TokenCount) {
+    if (GetExpressionEx (Tokens[TokenIndex], &InfoAddress, NULL) == FALSE) {
+      dprintf (HelpString);
+      Result = ERROR_INVALID_PARAMETER;
+      goto Exit;
+    }
+
+    TokenIndex++;
+  }
+
+  // Check for extra unexpected arguments
+  if (TokenIndex < TokenCount) {
+    dprintf (HelpString);
+    Result = ERROR_INVALID_PARAMETER;
+    goto Exit;
+  }
+
+  // If no valid input address was given, find the symbol.
+  if (InfoAddress == 0) {
     if (gUefiEnv == DXE) {
       InfoAddress = GetExpression ("mLoggerInfo");
       if (InfoAddress == NULL) {
@@ -384,31 +436,53 @@ advlog (
     dprintf ("Looped logs not yet implemented in extension!\n");
     Result = ERROR_NOT_SUPPORTED;
     goto Exit;
-  } else {
-    // non-loop optimization, only download through the last message.
-    LogBufferSize = min (LogBufferSize, (ULONG)(EndAddress - InfoAddress));
+  }
+
+  // non-loop optimization, only download through the last message.
+  LogBufferSize = min (LogBufferSize, (ULONG)(EndAddress - EntryAddress));
+  if (TailBytes >= LogBufferSize) {
+    // Don't bother with tail if it's larger than buffer.
+    TailBytes = 0;
+  }
+
+  // If there is a tail byte count specified, skip size-N bytes.
+  if (TailBytes != 0) {
+    EntryAddress += LogBufferSize - TailBytes;
+    LogBufferSize = (ULONG)TailBytes;
   }
 
   LogBuffer = (CHAR *)malloc (LogBufferSize);
 
   // Output() forces IO flush to inform user.
   g_ExtControl->Output (DEBUG_OUTPUT_NORMAL, "Reading log (0x%x bytes) ... \n", LogBufferSize);
-  ReadMemory (InfoAddress, LogBuffer, LogBufferSize, &BytesRead);
+  ReadMemory (EntryAddress, LogBuffer, LogBufferSize, &BytesRead);
   if (BytesRead != LogBufferSize) {
     dprintf ("Failed to read log memory!\n");
     Result = ERROR_BAD_LENGTH;
     goto Exit;
   }
 
-  Offset = (ULONG)(EntryAddress - InfoAddress);
-  End    = (ULONG)(EndAddress - InfoAddress);
+  Offset = 0;
+  End    = (ULONG)(EndAddress - EntryAddress);
+
+  // If there is a tail, look for the first entry.
+  if (TailBytes != 0) {
+    while (Offset + sizeof (ADVANCED_LOGGER_MESSAGE_ENTRY_V2) <= End) {
+      Entry = (ADVANCED_LOGGER_MESSAGE_ENTRY_V2 *)(LogBuffer + Offset);
+      if (Entry->Signature != MessageSignature) {
+        Offset += 8;
+        continue;
+      }
+      break;
+    }
+  }
 
   dprintf ("\n------------------------------------------------------------------------------\n");
   BOOLEAN  PrevNL = TRUE;
 
   while (Offset + sizeof (ADVANCED_LOGGER_MESSAGE_ENTRY_V2) <= End) {
     Entry = (ADVANCED_LOGGER_MESSAGE_ENTRY_V2 *)(LogBuffer + Offset);
-    if (Entry->Signature != 0x324d4c41) {
+    if (Entry->Signature != MessageSignature) {
       dprintf ("\nBad message signature!! Entry Offset: 0x%x\n", Offset);
       break;
     }
