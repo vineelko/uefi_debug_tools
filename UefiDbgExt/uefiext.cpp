@@ -17,7 +17,8 @@ Abstract:
 #include "uefiext.h"
 #include <vector>
 
-UEFI_ENV  gUefiEnv = DXE;
+UEFI_ENV  gUefiEnv         = DXE;
+BOOL      gPatinaExtLoaded = FALSE;
 ULONG     g_TargetMachine;
 
 HRESULT
@@ -164,6 +165,14 @@ help (
     "  linkedlist          - Parses a UEFI style linked list of entries.\n"
     "  efierror            - Translates an EFI error code.\n"
     "  advlog              - Prints the advanced logger memory log.\n"
+    );
+
+  // Only show Patina-specific commands if the extension is loaded
+  if (gPatinaExtLoaded) {
+    dprintf ("  gcd                 - Commands for dumping GCD information (Patina Only).\n");
+  }
+
+  dprintf (
     "\nUEFI Debugger:\n"
     "  info                - Queries information about the UEFI debugger\n"
     "  monitor             - Sends direct monitor commands\n"
@@ -245,6 +254,16 @@ uefiext_init (
                       "!uefiext.findmodule",
                       DEBUG_EXECUTE_DEFAULT
                       );
+    }
+
+    if (gUefiEnv == PATINA) {
+      INIT_API (); // The other extension commands may call `EXIT_API()`, so we need to re-initialize.
+      g_ExtControl->Execute (
+                      DEBUG_OUTCTL_THIS_CLIENT,
+                      "!uefiext.patinainit",
+                      DEBUG_EXECUTE_DEFAULT
+                      );
+      dprintf ("Patina extension loaded: %s\n", gPatinaExtLoaded ? "Yes" : "No");
     }
   }
 

@@ -25,6 +25,14 @@ prompt, navigate to the folder and run `msbuild`.
 The project can also be loaded and built in Visual Studio using the solution
 file. This project requires the Windows SDK and the Windows Driver Kit.
 
+If you wish to locally build and use the [Patina extension](../patina-ext/README.md),
+then use the following command to do a comprehensive build. Note that this requires
+npm be installed.
+
+```powershell
+msbuild -property:Configuration=Release -property:Platform=x64 -property:BuildPatinaExtension=true -property:DeployPatinaExtension=true
+```
+
 ## Installing the Extension
 
 Debugger extensions can be loaded into windbg several ways. The easiest is to download
@@ -35,13 +43,13 @@ not the device being debugged.
 __Installing for X64 Host__:
 
 ```powershell
-Invoke-WebRequest -Uri "https://github.com/microsoft/uefi_debug_tools/releases/latest/download/uefiext_x64.zip" -OutFile "$env:TEMP\uefiext.zip"; Expand-Archive "$env:TEMP\uefiext.zip" -DestinationPath "$env:TEMP\uefiext" -Force; Copy-Item "$env:TEMP\uefiext\uefiext.dll" -Destination "C:\Users\$Env:UserName\AppData\Local\DBG\EngineExtensions\UefiExt.dll"
+Invoke-WebRequest -Uri "https://github.com/microsoft/uefi_debug_tools/releases/latest/download/uefiext_x64.zip" -OutFile "$env:TEMP\uefiext.zip"; Expand-Archive "$env:TEMP\uefiext.zip" -DestinationPath "$env:TEMP\uefiext" -Force; Copy-Item "$env:TEMP\uefiext\*" -Destination "C:\Users\$Env:UserName\AppData\Local\DBG\EngineExtensions\"
 ```
 
 __Installing for ARM64 Host__:
 
 ```powershell
-Invoke-WebRequest -Uri "https://github.com/microsoft/uefi_debug_tools/releases/latest/download/uefiext_arm64.zip" -OutFile "$env:TEMP\uefiext.zip"; Expand-Archive "$env:TEMP\uefiext.zip" -DestinationPath "$env:TEMP\uefiext" -Force; Copy-Item "$env:TEMP\uefiext\uefiext.dll" -Destination "C:\Users\$Env:UserName\AppData\Local\DBG\EngineExtensions\UefiExt.dll"
+Invoke-WebRequest -Uri "https://github.com/microsoft/uefi_debug_tools/releases/latest/download/uefiext_arm64.zip" -OutFile "$env:TEMP\uefiext.zip"; Expand-Archive "$env:TEMP\uefiext.zip" -DestinationPath "$env:TEMP\uefiext" -Force; Copy-Item "$env:TEMP\uefiext\*" -Destination "C:\Users\$Env:UserName\AppData\Local\DBG\EngineExtensions\"
 ```
 
 `!uefiext` commands should now be available in windbg.

@@ -39,6 +39,7 @@ typedef enum _UEFI_ENV {
 } UEFI_ENV;
 
 extern UEFI_ENV  gUefiEnv;
+extern BOOL      gPatinaExtLoaded;
 
 //
 // EFI tables structures and functions.
@@ -116,6 +117,12 @@ Format (
 std::string
 FormatAddress (
   __in ULONGLONG  Address
+  );
+
+std::string
+BuildQuotedCommand (
+  const std::string  &baseCommand,
+  PCSTR              args
   );
 
 ULONG64

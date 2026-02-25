@@ -1,0 +1,120 @@
+/*++
+
+    Copyright (c) Microsoft Corporation.
+
+    SPDX-License-Identifier: BSD-2-Clause-Patent
+
+Module Name:
+
+    memory.cpp
+
+Abstract:
+
+    This file contains command forwarders to the Patina javascript extension.
+
+--*/
+
+#include "uefiext.h"
+#include <string>
+#include <sstream>
+
+//
+// *******************************************************  Helper Functions
+//
+
+/**
+ * Builds a command string with quoted arguments from a space-separated argument string.
+ *
+ *
+ * @param baseCommand The base command name (e.g., "!gcd")
+ * @param args Space-separated arguments to be quoted and appended
+ * @return Complete command string with quoted arguments
+ */
+std::string
+BuildQuotedCommand (
+  const std::string  &baseCommand,
+  PCSTR              args
+  )
+{
+  std::string  command = baseCommand;
+
+  if (args && *args) {
+    std::string         argsStr (args);
+    std::istringstream  iss (argsStr);
+    std::string         token;
+
+    // Parse each argument and wrap in quotes
+    while (iss >> token) {
+      command += " \"" + token + "\"";
+    }
+  }
+
+  return command;
+}
+
+//
+// *******************************************************  External Functions
+//
+
+HRESULT CALLBACK
+patinainit (
+  PDEBUG_CLIENT4  Client,
+  PCSTR           args
+  )
+{
+  PCSTR    Output;
+  HRESULT  hr = S_OK;
+
+  INIT_API ();
+
+  Output = ExecuteCommandWithOutput (Client, ".scriptload PatinaExt.js");
+  if (strstr (Output, "JavaScript script successfully loaded") == NULL) {
+    dprintf ("Failed to load PatinaExt.js\n");
+    hr = E_FAIL;
+    goto Cleanup;
+  }
+
+  Output = ExecuteCommandWithOutput (Client, "!__patina_ext_init");
+  if (strstr (Output, "Patina extension initialized.") == NULL) {
+    dprintf ("Failed to initialize Patina extension\n");
+    hr = E_FAIL;
+    goto Cleanup;
+  }
+
+  gPatinaExtLoaded = TRUE;
+
+Cleanup:
+  EXIT_API ();
+  return hr;
+}
+
+HRESULT CALLBACK
+gcd (
+  PDEBUG_CLIENT4  Client,
+  PCSTR           args
+  )
+{
+  HRESULT  hr = S_OK;
+
+  INIT_API ();
+
+  if (gPatinaExtLoaded) {
+    std::string  command = BuildQuotedCommand ("!__gcd", args);
+
+    if ((hr = g_ExtControl->Execute (
+                              DEBUG_OUTCTL_ALL_CLIENTS,
+                              command.c_str (),
+                              DEBUG_EXECUTE_DEFAULT
+                              )) != S_OK)
+    {
+      goto Cleanup;
+    }
+  } else {
+    dprintf ("Command not supported for this environment!\n");
+    hr = ERROR_NOT_SUPPORTED;
+  }
+
+Cleanup:
+  EXIT_API ();
+  return hr;
+}
